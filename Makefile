@@ -33,9 +33,12 @@ build/kernel.bin: build/kernel.elf
 disk.img: build/stage1.bin build/stage2.bin build/kernel.bin
 	cat build/stage1.bin build/stage2.bin build/kernel.bin > $@
 
-run: disk.img
+run-nographic: disk.img
+	qemu-system-x86_64 -drive format=raw,file=disk.img -d cpu_reset,guest_errors -no-reboot -nographic
+run-graphic: disk.img
 	qemu-system-x86_64 -drive format=raw,file=disk.img -d cpu_reset,guest_errors -no-reboot
-
+run:
+	@echo 'run-nographic or run-graphic'
 clean:
 	rm -rf build disk.img
 
