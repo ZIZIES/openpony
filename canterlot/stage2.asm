@@ -2,6 +2,7 @@ bits 16
 org 0x7E00
 
 stage2:
+    mov [boot_drive], dl
     mov si, msg
     call print
 
@@ -11,7 +12,18 @@ stage2:
 
     mov si, a20_ok
     call print
+
+    mov si, kdap
+    mov dl, [boot_drive]
+    mov ah, 0x42
+    int 0x13
+    jc .kfail
     jmp enter_pm
+
+.kfail:
+    mov si, k_fail
+    call print
+    jmp .hang
 
 .a20_fail:
     mov si, a20_bad
@@ -76,7 +88,7 @@ gdt_data:                   ; selector 0x10
     db 0x00, 10010010b, 11001111b, 0x00
 gdt_code64:                 ; selector 0x18
     dw 0xFFFF, 0x0000
-    db 0x00, 10011010b, 10101111b, 0x00   ; flags nibble 1010 = granularity + L (long) bit
+    db 0x00, 10011010b, 10101111b, 0x00
 gdt_end:
 
 gdt_descriptor:
@@ -85,10 +97,20 @@ gdt_descriptor:
 
 ; ---------- data ----------
 
-msg:     db "canterlot: stage 2 loaded", 13, 10, 0
-a20_ok:  db "canterlot: a20 enabled", 13, 10, 0
-a20_bad: db "canterlot: a20 FAILED", 13, 10, 0
-pm_msg:  db "canterlot: protected mode!", 0
+msg:        db "canterlot: stage 2 loaded", 13, 10, 0
+a20_ok:     db "canterlot: a20 enabled", 13, 10, 0
+a20_bad:    db "canterlot: a20 FAILED", 13, 10, 0
+k_fail:     db "canterlot: kernel read failed", 13, 10, 0
+pm_msg:     db "canterlot: protected mode!", 0
+lm_msg:     db "canterlot: long mode!", 0
+boot_drive: db 0
+
+kdap:
+    db 0x10, 0
+    dw 64                   ; 64 sectors = 32KB
+    dw 0x0000               ; offset
+    dw 0x1000               ; segment -> physical 0x10000
+    dq 5                    ; starting LBA
 
 ; ---------- 32-bit code, only from here down ----------
 
@@ -118,23 +140,23 @@ pm_entry:
     mov edi, 0x1000
     xor eax, eax
     mov ecx, 3 * 4096 / 4
-    rep stosd                       ; zero all three tables
+    rep stosd
 
     mov dword [0x1000], 0x2000 | 0x03   ; pml4[0] -> pdpt
     mov dword [0x2000], 0x3000 | 0x03   ; pdpt[0] -> pd
 
     mov edi, 0x3000
-    mov eax, 0x83                       ; present + writable + 2MB page, phys 0
+    mov eax, 0x83                       ; present + writable + 2MB page
     mov ecx, 512
 .map:
     mov [edi], eax
-    add eax, 0x200000                   ; next 2MB
-    add edi, 8                          ; entries are 8 bytes
+    add eax, 0x200000
+    add edi, 8
     loop .map
 
     ; --- flip the switches ---
     mov eax, 0x1000
-    mov cr3, eax                        ; page table root
+    mov cr3, eax
 
     mov eax, cr4
     or eax, 1 << 5                      ; PAE
@@ -142,14 +164,14 @@ pm_entry:
 
     mov ecx, 0xC0000080                 ; EFER MSR
     rdmsr
-    or eax, 1 << 8                      ; LME: long mode enable
+    or eax, 1 << 8                      ; LME
     wrmsr
 
     mov eax, cr0
-    or eax, 1 << 31                     ; PG: paging on -> long mode active
+    or eax, 1 << 31                     ; PG
     mov cr0, eax
 
-    jmp 0x18:long_entry                 ; far jump into the 64-bit code segment
+    jmp 0x18:long_entry
 
 ; ---------- 64-bit code ----------
 
@@ -171,9 +193,7 @@ long_entry:
     add rdi, 2
     jmp .loop
 .done:
-    hlt
-    jmp .done
-
-lm_msg: db "canterlot: long mode!", 0
+    mov rax, 0x10000        ; kernel entry (_start)
+    jmp rax
 
 times 2048 - ($ - $$) db 0

@@ -23,6 +23,7 @@ start:
     int 0x13
     jc disk_error
 
+    mov dl, [boot_drive]
     jmp 0x0000:0x7E00
 
 disk_error:
