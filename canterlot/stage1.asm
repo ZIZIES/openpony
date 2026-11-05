@@ -46,7 +46,7 @@ print:
     ret
 
 boot_drive: db 0
-msg:     db "canterlot: hello from openpony", 13, 10, 0
+msg:     db "canterlot: stage 1 loaded", 13, 10, 0
 err_msg: db "disk read failed", 13, 10, 0
 
 dap:
