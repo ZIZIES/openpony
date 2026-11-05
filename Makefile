@@ -2,6 +2,9 @@ CC     = gcc
 CFLAGS = -ffreestanding -fno-stack-protector -fno-pic -fno-pie \
          -mno-red-zone -mno-sse -mno-mmx -mno-80387 -O2 -Wall -Wextra
 
+KSRC := $(wildcard kernel/*.c)
+KOBJ := $(patsubst kernel/%.c,build/%.o,$(KSRC))
+
 all: disk.img
 
 build/stage1.bin: canterlot/stage1.asm
@@ -16,12 +19,12 @@ build/entry.o: kernel/entry.asm
 	mkdir -p build
 	nasm -f elf64 $< -o $@
 
-build/kernel.o: kernel/kernel.c
+build/%.o: kernel/%.c $(wildcard include/*.h)
 	mkdir -p build
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -Iinclude -c $< -o $@
 
-build/kernel.elf: build/entry.o build/kernel.o kernel/linker.ld
-	ld -T kernel/linker.ld -o $@ build/entry.o build/kernel.o
+build/kernel.elf: build/entry.o $(KOBJ) kernel/linker.ld
+	ld -T kernel/linker.ld -o $@ build/entry.o $(KOBJ)
 
 build/kernel.bin: build/kernel.elf
 	objcopy -O binary $< $@
@@ -31,7 +34,7 @@ disk.img: build/stage1.bin build/stage2.bin build/kernel.bin
 	cat build/stage1.bin build/stage2.bin build/kernel.bin > $@
 
 run: disk.img
-	qemu-system-x86_64 -drive format=raw,file=disk.img -d int,cpu_reset -no-reboot
+	qemu-system-x86_64 -drive format=raw,file=disk.img -d cpu_reset,guest_errors -no-reboot
 
 clean:
 	rm -rf build disk.img
