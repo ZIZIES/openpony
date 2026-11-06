@@ -42,4 +42,4 @@ run:
 clean:
 	rm -rf build disk.img
 
-.PHONY: all run clean
+.PHONY: all run-graphic run-nographic clean
