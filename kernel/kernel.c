@@ -4,9 +4,9 @@
 
 void kmain(void) {
     serial_init();
-    kset_cursor(22, 0);
+    kset_cursor(20, 0);
     kputs("openpony booted sucessfully.\n");
-    kputs("press enter to continue with the boot text, otherwise press any key.\n\n");
+    kputs("press enter to continue with the boot text, otherwise press any key.\n");
 
     if (kgetc() != 10) {
         kclear();
