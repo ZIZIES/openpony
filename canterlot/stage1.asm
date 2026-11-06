@@ -14,9 +14,9 @@ start:
 
     mov [boot_drive], dl
 
-    mov ax, 0x0003          ; 80x25 text mode (also clears the screen)
+    mov ax, 0x0003 
     int 0x10
-    mov ax, 0x1112          ; load the 8x8 rom font -> 80x50 text mode
+    mov ax, 0x1111 
     xor bl, bl
     int 0x10
 

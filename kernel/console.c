@@ -4,7 +4,7 @@
 
 #define VGA   ((volatile u16 *)0xB8000)
 #define COLS  80
-#define ROWS  50                /* 80x50 text mode, set up by canterlot stage 1 */
+#define ROWS  28                /* 80x50 text mode, set up by canterlot stage 1 */
 #define COM1  0x3F8
 
 static int cursor;

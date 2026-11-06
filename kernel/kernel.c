@@ -22,6 +22,7 @@ void kmain(void) {
 
     klog(LOG_OK,   "keyboard: ps/2, polled");
     klog(LOG_OK,   "shell: pid 0 on tty0");
+    klog(LOG_INFO, "welcome to openpony!");
     kputc('\n');
 
     shell_run();
