@@ -2,6 +2,8 @@
 #include "keyboard.h"
 #include "kstring.h"
 #include "shell.h"
+#include "log.h"
+#include "sysinfo.h"
 
 #define LINE_MAX 128
 #define ARGV_MAX 16
@@ -26,12 +28,14 @@ static int cmd_clear(int argc, char **argv) {
 
 static int cmd_fetch(int argc, char **argv) {
     (void)argc; (void)argv;
-    kputs("  openpony 0.0.1\n");
-    kputs("  ---------------\n");
-    kputs("  arch:        x86-64 (long mode)\n");
-    kputs("  bootstrap:   canterlot\n");
-    kputs("  display:     vga text 80x25 + serial\n");
-    kputs("  shell:       pid 0 tty\n");
+    kprintf("  openpony 0.0.1\n");
+    kprintf("  ---------------\n");
+    kprintf("  arch:        x86-64 (long mode)\n");
+    kprintf("  bootstrap:   canterlot\n");
+    kprintf("  cpu:         %s\n", sysinfo_cpu_brand());
+    kprintf("  memory:      %lu MiB usable\n", sysinfo_ram_kib() / 1024);
+    kprintf("  display:     vga text 80x50 + serial\n");
+    kprintf("  shell:       pid 0 tty\n");
     return 0;
 }
 

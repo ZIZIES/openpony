@@ -1,6 +1,6 @@
 CC     = gcc
 CFLAGS = -ffreestanding -fno-stack-protector -fno-pic -fno-pie \
-         -mno-red-zone -mno-sse -mno-mmx -mno-80387 -O2 -Wall -Wextra
+         -mno-red-zone -mno-sse -mno-mmx -mno-80387 -O2 -Wall -Wextra -Wno-array-bounds
 
 KSRC := $(wildcard kernel/*.c)
 KOBJ := $(patsubst kernel/%.c,build/%.o,$(KSRC))
@@ -33,9 +33,9 @@ build/kernel.bin: build/kernel.elf
 disk.img: build/stage1.bin build/stage2.bin build/kernel.bin
 	cat build/stage1.bin build/stage2.bin build/kernel.bin > $@
 
-run:
-	qemu-system-x86_64 -drive format=raw,file=disk.img -d cpu_reset,guest_errors -no-reboot
+run: disk.img
+	qemu-system-x86_64 -drive format=raw,file=disk.img -display gtk,zoom-to-fit=on -serial stdio -d cpu_reset,guest_errors -no-reboot
 clean:
 	rm -rf build disk.img
 
-.PHONY: all run-graphic run-nographic clean
+.PHONY: all run clean
