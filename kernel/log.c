@@ -3,6 +3,12 @@
 #include "console.h"
 #include "log.h"
 
+static int emitted;                     /* chars written by the current kvprintf */
+
+static void out(char c) { kputc(c); emitted++; }
+
+static void out_str(const char *s) { while (*s) out(*s++); }
+
 static void put_num(u64 v, unsigned base, int width, char pad) {
     char tmp[24];
     int n = 0;
@@ -10,14 +16,15 @@ static void put_num(u64 v, unsigned base, int width, char pad) {
         tmp[n++] = "0123456789abcdef"[v % base];
         v /= base;
     } while (v);
-    for (int i = n; i < width; i++) kputc(pad);
-    while (n) kputc(tmp[--n]);
+    for (int i = n; i < width; i++) out(pad);
+    while (n) out(tmp[--n]);
 }
 
 /* supports: %s %c %d %u %x %p %%, optional 0 flag + width, optional l / ll */
-static void kvprintf(const char *fmt, va_list ap) {
+int kvprintf(const char *fmt, va_list ap) {
+    emitted = 0;
     for (; *fmt; fmt++) {
-        if (*fmt != '%') { kputc(*fmt); continue; }
+        if (*fmt != '%') { out(*fmt); continue; }
         fmt++;
 
         char pad = ' ';
@@ -29,16 +36,16 @@ static void kvprintf(const char *fmt, va_list ap) {
         switch (*fmt) {
         case 's': {
             const char *s = va_arg(ap, const char *);
-            kputs(s ? s : "(null)");
+            out_str(s ? s : "(null)");
             break;
         }
         case 'c':
-            kputc((char)va_arg(ap, int));
+            out((char)va_arg(ap, int));
             break;
         case 'd': {
             long v = lng ? va_arg(ap, long) : va_arg(ap, int);
             u64 u = (u64)v;
-            if (v < 0) { kputc('-'); u = -u; if (width) width--; }
+            if (v < 0) { out('-'); u = -u; if (width) width--; }
             put_num(u, 10, width, pad);
             break;
         }
@@ -49,20 +56,21 @@ static void kvprintf(const char *fmt, va_list ap) {
             put_num(lng ? va_arg(ap, unsigned long) : va_arg(ap, unsigned int), 16, width, pad);
             break;
         case 'p':
-            kputs("0x");
+            out_str("0x");
             put_num((u64)va_arg(ap, void *), 16, 16, '0');
             break;
         case '%':
-            kputc('%');
+            out('%');
             break;
         case 0:
-            return;
+            return emitted;
         default:
-            kputc('%');
-            kputc(*fmt);
+            out('%');
+            out(*fmt);
             break;
         }
     }
+    return emitted;
 }
 
 void kprintf(const char *fmt, ...) {

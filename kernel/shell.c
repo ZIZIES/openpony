@@ -1,63 +1,31 @@
 #include "console.h"
 #include "keyboard.h"
-#include "kstring.h"
+#include "basic.h"
 #include "shell.h"
-#include "log.h"
-#include "sysinfo.h"
 
 #define LINE_MAX 128
 #define ARGV_MAX 16
 
+/* ---- the one command that needs to see the table itself ---- */
+
 static int cmd_help(int argc, char **argv);
+static const struct command help_cmd = { "help", cmd_help, "list commands" };
 
-static int cmd_echo(int argc, char **argv) {
-    (void)argv;
-    for (int i = 1; i < argc; i++) {
-        if (i > 1) kputc(' ');
-        kputs(argv[i]);
-    }
-    kputc('\n');
-    return 0;
+static void print_cmd(const struct command *c) {
+    printf("  %s", c->name);
+    for (size_t n = strlen(c->name); n < 10; n++) putchar(' ');
+    printf("%s\n", c->help);
 }
-
-static int cmd_clear(int argc, char **argv) {
-    (void)argc; (void)argv;
-    kclear();
-    return 0;
-}
-
-static int cmd_fetch(int argc, char **argv) {
-    (void)argc; (void)argv;
-    kprintf("  openpony 0.0.1\n");
-    kprintf("  ---------------\n");
-    kprintf("  arch:        x86-64 (long mode)\n");
-    kprintf("  bootstrap:   canterlot\n");
-    kprintf("  cpu:         %s\n", sysinfo_cpu_brand());
-    kprintf("  memory:      %lu MiB usable\n", sysinfo_ram_kib() / 1024);
-    kprintf("  display:     vga text 80x50 + serial\n");
-    kprintf("  shell:       pid 0 tty\n");
-    return 0;
-}
-
-static const struct command commands[] = {
-    { "help",  cmd_help,  "list commands" },
-    { "echo",  cmd_echo,  "print arguments" },
-    { "clear", cmd_clear, "clear the screen" },
-    { "fetch", cmd_fetch, "system info" },
-    { 0, 0, 0 }
-};
 
 static int cmd_help(int argc, char **argv) {
     (void)argc; (void)argv;
-    for (const struct command *c = commands; c->name; c++) {
-        kputs("  ");
-        kputs(c->name);
-        kputs(" - ");
-        kputs(c->help);
-        kputc('\n');
-    }
+    print_cmd(&help_cmd);
+    for (const struct command *c = builtins; c->name; c++)
+        print_cmd(c);
     return 0;
 }
+
+/* ---- shell ---- */
 
 static void readline(char *buf, int max) {
     int len = 0;
@@ -72,7 +40,7 @@ static void readline(char *buf, int max) {
             if (len > 0) { len--; kputc('\b'); }
             continue;
         }
-        if (c < 32 || c > 126) continue;
+        if (c < 32 || c > 126) continue;        /* ignore tab, esc, etc. */
         if (len < max - 1) {
             buf[len++] = c;
             kputc(c);
@@ -94,8 +62,9 @@ static int tokenize(char *line, char **argv, int max) {
 }
 
 static const struct command *find(const char *name) {
-    for (const struct command *c = commands; c->name; c++)
-        if (kstrcmp(c->name, name) == 0) return c;
+    if (strcmp(name, "help") == 0) return &help_cmd;
+    for (const struct command *c = builtins; c->name; c++)
+        if (strcmp(c->name, name) == 0) return c;
     return 0;
 }
 
