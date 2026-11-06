@@ -3,6 +3,10 @@
 
 #include "types.h"
 
+static inline void outw(u16 port, u16 v) {
+    __asm__ volatile ("outw %0, %1" : : "a"(v), "Nd"(port));
+}
+
 static inline void outb(u16 port, u8 v) {
     __asm__ volatile ("outb %0, %1" : : "a"(v), "Nd"(port));
 }

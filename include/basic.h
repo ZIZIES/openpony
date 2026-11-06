@@ -24,6 +24,9 @@ int  getchar(void);                     /* blocks until a key is pressed */
 void clear_screen(void);
 void set_color(int color);
 
+/* ---- power ---- */
+void poweroff(void);                    /* returns only if the machine ignored us */
+
 /* ---- string.h ---- */
 size_t strlen(const char *s);
 int    strcmp(const char *a, const char *b);
